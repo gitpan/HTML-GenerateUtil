@@ -3,7 +3,7 @@
 
 use Test::More tests => 4011;
 BEGIN { use_ok('HTML::GenerateUtil') };
-use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag :consts);
+use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use strict;
 
 my $border_size = 100;

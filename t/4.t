@@ -6,7 +6,7 @@ if ($@) {
 } else {
   plan tests => 3;
 }
-use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag :consts);
+use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use strict;
 
 my $NIter = 10000;

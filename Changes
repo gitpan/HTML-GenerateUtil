@@ -7,3 +7,7 @@ Revision history for Perl extension HTML::GenerateUtil.
 	- allow array ref for unquoted values in generate_attribtes()
   - turn on optimisation again
 
+1.02  Thu May 27 11:42:00 2004
+	- remove dependence on 5.8.4
+  - move :consts import to first
+
