@@ -123,7 +123,7 @@ SV * GF_generate_attributes(HV * attrhv) {
   int i, j, estimatedlen, vallen;
   I32 keylen;
   char * key, tmp[64];
-  SV * attrstr, * val;
+  SV * attrstr, * val, **av_val;
 
   /* Iterate through keys to work out an estimated final length */
   estimatedlen = 1;
@@ -166,10 +166,17 @@ SV * GF_generate_attributes(HV * attrhv) {
     if (SvOK(val)) {
       sv_catpvn(attrstr, "=\"", 2);
 
-      /* For the value part, escape special html chars, then dispose of result */
-      val = GF_escape_html(val, 0, 0, 0);
-      sv_catsv(attrstr, val);
-      SvREFCNT_dec(val);
+      /* If value is reference to array with one item, use that unescaped */
+      if (SvOK(val) && SvROK(val) && SvTYPE(SvRV(val)) == SVt_PVAV) {
+        if ((av_val = av_fetch((AV *)SvRV(val), 0, 0)) && SvOK(val = *av_val)) {
+          sv_catsv(attrstr, val);
+        }
+      } else {
+        /* For the value part, escape special html chars, then dispose of result */
+        val = GF_escape_html(val, 0, 0, 0);
+        sv_catsv(attrstr, val);
+        SvREFCNT_dec(val);
+      }
 
       sv_catpvn(attrstr, "\"", 1);
     }
@@ -190,8 +197,8 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
     estimatedlen += SvCUR(attrstr) + 1;
   }
 
-  /* If asked to escape, escape the val */
   if (val) {
+    /* If asked to escape, escape the val */
     if (b_escapeval)
       val = GF_escape_html(val, 0, 0, 0);
     estimatedlen += SvCUR(val) + SvCUR(tag) + 3;

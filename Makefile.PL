@@ -12,7 +12,7 @@ WriteMakefile(
     LIBS              => [''], # e.g., '-lm'
     DEFINE            => '', # e.g., '-DHAVE_SOMETHING'
     INC               => '-I.', # e.g., '-I. -I/usr/include/other'
-    OPTIMIZE          => '-g -Wall',
+#	    OPTIMIZE          => '-g -Wall',
 	# Un-comment this if you add C files to link with later:
     OBJECT            => 'GenerateUtil.o GenerateFunctions.o', # link all the C files too
 );

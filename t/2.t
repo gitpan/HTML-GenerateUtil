@@ -1,7 +1,7 @@
 
 #########################
 
-use Test::More tests => 1014;
+use Test::More tests => 1016;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag);
 use strict;
@@ -14,6 +14,9 @@ is ('abc="abc"', generate_attributes({ AbC => 'abc' }));
 is ('abc', generate_attributes({ AbC => undef }));
 is ('a="1"', generate_attributes({ a => 1 }));
 is ('a="1.25"', generate_attributes({ a => 1.25 }));
+
+is ('a="&<>""', generate_attributes({ a => [ '&<>"' ] }));
+is ('a=""', generate_attributes({ a => [ ] }));
 
 push @border, 'x' x $border_size;
 

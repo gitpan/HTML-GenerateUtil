@@ -26,7 +26,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 require XSLoader;
 XSLoader::load('HTML::GenerateUtil', $VERSION);
@@ -139,18 +139,24 @@ be very fast. It's also fully UTF-8 aware.
 
 =item C<escape_html($Str, $Mode)>
 
-Escapes the contents of $Str to change the chars
+Escapes the contents of C<$Str> to change the chars
 [<>&"] to '&lt;', '&gt;', '&amp;' and '&quot;' repectively.
 
-$Mode is a bit field with the additional options or'd together:
+C<$Mode> is a bit field with the additional options or'd together:
 
 =over 4
 
-=item EH_INPLACE - modify in-place, otherwise return new copy
+=item *
 
-=item EH_LFTOBR - convert \n to <br>
+C<EH_INPLACE> - modify in-place, otherwise return new copy
 
-=item EH_SPTONBSP - convert '  ' to ' &nbsp;'
+=item *
+
+C<EH_LFTOBR> - convert \n to <br>
+
+=item *
+
+C<EH_SPTONBSP> - convert '  ' to ' &nbsp;'
 
 =back
 
@@ -159,7 +165,7 @@ actually being in <pre> tags
 
 =item C<generate_attributes($HashRef)>
 
-Turns the contents of $HashRef of the form:
+Turns the contents of C<$HashRef> of the form:
 
   {
     aaa => 'bbb',
@@ -170,9 +176,21 @@ Into a string of the form:
 
   q{aaa="bbb" ccc}
 
-Useful for generating HTML tags. The values of each hash
+Useful for generating HTML tags. The I<values> of each hash
 entry are escaped with escape_html() before being added
 to the final string.
+
+If you want to use a raw value unescaped, pass it as an
+array ref with a single item. Eg.
+
+  {
+    aaa => [ '<blah>' ],
+    bbb => '<blah'>
+  }
+
+Is turned into:
+
+  q{aaa="<blah>" bbb="&lt;blah&gt;"}
 
 =item C<generate_tag($Tag, $AttrHashRef, $Value, $Mode)>
 
@@ -180,20 +198,24 @@ Creates an HTML tag of the basic form:
 
   <$Tag %$AttrHashRef>$Value</$Tag>
 
-If C<$AttrHashRef> is undef, then no attributes are created.
+If C<$AttrHashRef> is C<undef>, then no attributes are created.
 Otherwise C<generate_attributes()> is called to stringify
 the hash ref.
 
 If C<$Value> is C<undef>, then no C<$Value> is included, and
 no E<lt>/$TagE<gt> is added.
 
-$Mode is a bit field with the additional options:
+C<$Mode> is a bit field with the additional options:
 
 =over 4
 
-=item GT_ESCAPEVAL - call escape_html on $Value
+=item *
 
-=item GT_ADDNEWLINE - append \n to output of string
+C<GT_ESCAPEVAL> - call escape_html on $Value
+
+=item *
+
+C<GT_ADDNEWLINE> - append \n to output of string
 
 =back
 
