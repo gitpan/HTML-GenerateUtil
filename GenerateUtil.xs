@@ -8,9 +8,11 @@
 #define B_INPLACE 1
 #define B_LFTOBR 2
 #define B_SPTONBSP 4
+#define B_LEAVEKNOWN 8
 
 #define B_ESCAPEVAL 1
 #define B_ADDNEWLINE 2
+#define B_CLOSETAG 4
 
 MODULE = HTML::GenerateUtil		PACKAGE = HTML::GenerateUtil		
 
@@ -19,7 +21,7 @@ escape_html(str, mode)
   SV * str
   int mode
 INIT:
-  int b_inplace, b_lftobr, b_sptonbsp;
+  int b_inplace, b_lftobr, b_sptonbsp, b_leaveknown;
   SV * newstr;
 
   /* Check it's a string */
@@ -31,10 +33,11 @@ INIT:
   b_inplace = mode & B_INPLACE;
   b_lftobr = mode & B_LFTOBR;
   b_sptonbsp = mode & B_SPTONBSP;
+  b_leaveknown = mode & B_LEAVEKNOWN;
 CODE:
 
   /* Call helper function */
-  newstr = GF_escape_html(str, b_inplace, b_lftobr, b_sptonbsp);
+  newstr = GF_escape_html(str, b_inplace, b_lftobr, b_sptonbsp, b_leaveknown);
 
   if (!newstr)
     XSRETURN_UNDEF;
@@ -75,7 +78,7 @@ generate_tag(tag, attr, val, mode)
 INIT:
   SV * tagstr;
   HV * attrhv = 0;
-  int b_escapeval, b_addnewline;
+  int b_escapeval, b_addnewline, b_closetag;
 
   if (!SvOK(tag) || !SvPOK(tag)) {
     XSRETURN_UNDEF;
@@ -92,8 +95,9 @@ INIT:
   /* Get flags */
   b_escapeval = mode & B_ESCAPEVAL;
   b_addnewline = mode & B_ADDNEWLINE;
+  b_closetag = mode & B_CLOSETAG;
 CODE:
-  tagstr = GF_generate_tag(tag, attrhv, val, b_escapeval, b_addnewline);
+  tagstr = GF_generate_tag(tag, attrhv, val, b_escapeval, b_addnewline, b_closetag);
 
   RETVAL = tagstr;
 OUTPUT:

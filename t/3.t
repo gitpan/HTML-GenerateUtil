@@ -1,7 +1,7 @@
 
 #########################
 
-use Test::More tests => 4011;
+use Test::More tests => 4014;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use strict;
@@ -11,12 +11,15 @@ my @border = 'x' x $border_size;
 
 is ('<foo>', generate_tag('foo', undef, undef, 0));
 is ('<foo>', generate_tag('foo', undef, undef, GT_ESCAPEVAL));
+is ('<foo />', generate_tag('foo', undef, undef, GT_CLOSETAG));
 is ('<foo a="abc">', generate_tag('foo', { a => 'abc' }, undef, 0));
 is ('<foo abc="abc">', generate_tag('foo', { AbC => 'abc' }, undef, 0));
+is ('<foo abc="abc" />', generate_tag('foo', { AbC => 'abc' }, undef, GT_CLOSETAG));
 is ('<foo a="abc">bar</foo>', generate_tag('foo', { a => 'abc' }, 'bar', 0));
 is ('<foo a="abc">bar</foo>' . "\n", generate_tag('foo', { a => 'abc' }, 'bar', GT_ADDNEWLINE));
 is ('<foo a="abc">ba<>"&r</foo>', generate_tag('foo', { a => 'abc' }, 'ba<>"&r', 0));
 is ('<foo a="abc">ba&lt;&gt;&quot;&amp;r</foo>', generate_tag('foo', { a => 'abc' }, 'ba<>"&r', GT_ESCAPEVAL));
+is ('<foo a="abc" />ba&lt;&gt;&quot;&amp;r</foo>', generate_tag('foo', { a => 'abc' }, 'ba<>"&r', GT_ESCAPEVAL | GT_CLOSETAG));
 is ('<foo a="abc">ba&lt;&gt;&quot;&amp;r</foo>' . "\n", generate_tag('foo', { a => 'abc' }, 'ba<>"&r', GT_ESCAPEVAL | GT_ADDNEWLINE));
 
 push @border, 'x' x $border_size;

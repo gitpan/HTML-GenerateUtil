@@ -11,3 +11,7 @@ Revision history for Perl extension HTML::GenerateUtil.
 	- remove dependence on 5.8.4
   - move :consts import to first
 
+1.03  Thu Jun 14 17:12:00 2004
+	- add "leaveknown" entities option
+  - add "closetag" option
+

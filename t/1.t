@@ -1,9 +1,10 @@
 
 #########################
 
-use Test::More tests => 2024;
+use Test::More tests => 2029;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
+use Encode;
 use strict;
 
 my $border_size = 100;
@@ -49,11 +50,19 @@ $b = escape_html($a, 0);
 is ('<>&"', $a);
 is ('&lt;&gt;&amp;&quot;', $b);
 
+is ('a&amp;bc&nbsp;de&amp;f', escape_html('a&bc&nbsp;de&f', EH_LEAVEKNOWN));
+is ('a&amp;bc&nbsp de&amp;x', escape_html('a&bc&nbsp de&x', EH_LEAVEKNOWN));
+is ('a&amp;bc&#1234;de&amp;#f', escape_html('a&bc&#1234;de&#f', EH_LEAVEKNOWN));
+is ('a&amp;bc&#x1ab4;de&amp;#xf', escape_html('a&bc&#x1ab4;de&#xf', EH_LEAVEKNOWN));
+is ('a&amp;bc&#x1ab4;def', escape_html('a&bc&#x1ab4;def', EH_LEAVEKNOWN));
+
+push @border, 'x' x $border_size;
+
 $a = '<>&"' . "\x{1234}";
 $b = escape_html($a, 0);
 is ('<>&"' . "\x{1234}", $a);
 is ('&lt;&gt;&amp;&quot;' . "\x{1234}", $b);
-ok (utf8::is_utf8($b));
+ok (Encode::is_utf8($b));
 
 push @border, 'x' x $border_size;
 
@@ -81,7 +90,7 @@ for (1 .. 1000) {
 
   my $estr = escape_html($str, EH_LFTOBR | EH_SPTONBSP);
   is ($estr, $pstr);
-  is (utf8::is_utf8($str), utf8::is_utf8($estr));
+  is (Encode::is_utf8($str), Encode::is_utf8($estr));
 }
 
 push @border, 'x' x $border_size;

@@ -13,10 +13,12 @@ our @ISA = qw(Exporter);
 our %EXPORT_TAGS = (
   'all' => [ qw(
     escape_html generate_attributes generate_tag
-    EH_INPLACE EH_LFTOBR EH_SPTONBSP GT_ESCAPEVAL GT_ADDNEWLINE
+    EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
+    GT_ESCAPEVAL GT_ADDNEWLINE GT_CLOSETAG
   ) ],
   'consts' => [ qw(
-    EH_INPLACE EH_LFTOBR EH_SPTONBSP GT_ESCAPEVAL GT_ADDNEWLINE
+    EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
+    GT_ESCAPEVAL GT_ADDNEWLINE GT_CLOSETAG
   ) ]
 );
 
@@ -26,7 +28,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 require XSLoader;
 XSLoader::load('HTML::GenerateUtil', $VERSION);
@@ -34,9 +36,11 @@ XSLoader::load('HTML::GenerateUtil', $VERSION);
 use constant EH_INPLACE => 1;
 use constant EH_LFTOBR => 2;
 use constant EH_SPTONBSP => 4;
+use constant EH_LEAVEKNOWN => 8;
 
 use constant GT_ESCAPEVAL => 1;
 use constant GT_ADDNEWLINE => 2;
+use constant GT_CLOSETAG => 4;
 
 # Preloaded methods go here.
 
@@ -158,6 +162,12 @@ C<EH_LFTOBR> - convert \n to <br>
 
 C<EH_SPTONBSP> - convert '  ' to ' &nbsp;'
 
+=item *
+
+C<EH_LEAVEKNOWN> - if & is followed by text that looks like an
+entity reference (eg &#1234; or &#x1ab2; or &nbsp;) then it's
+left unescaped
+
 =back
 
 Useful for turning text into similar to <pre> form without
@@ -216,6 +226,13 @@ C<GT_ESCAPEVAL> - call escape_html on $Value
 =item *
 
 C<GT_ADDNEWLINE> - append \n to output of string
+
+=item *
+
+C<GT_CLOSETAG> - close the tag (eg <tag />). This should really
+only be used when C<$Value> is undef, otherwise you'll end
+up with something like C<E<lt>tag /E<gt>valueE<lt>/tagE<gt>>,
+which is probably not what you want
 
 =back
 

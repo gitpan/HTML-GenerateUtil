@@ -6,7 +6,7 @@
 #include "ppport.h"
 #include "GenerateFunctions.h"
 
-SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp) {
+SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b_leaveknown) {
   int i;
   STRLEN origlen, extrachars;
   char * sp, *newsp, c, lastc;
@@ -28,7 +28,7 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp) {
     c = sp[i];
     if (c == '<' || c == '>')
 	    extrachars += 3;
-    else if (c == '&')
+    else if (c == '&' && (!b_leaveknown || !GF_is_known_entity(sp, i, origlen)))
 	    extrachars += 4;
     else if (c == '"')
 	    extrachars += 5;
@@ -83,7 +83,7 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp) {
       newsp -= 4;
       memcpy(newsp, "&gt;", 4);
     }
-    else if (c == '&') {
+    else if (c == '&' && (!b_leaveknown || !GF_is_known_entity(sp, i, origlen))) {
       newsp -= 5;
       memcpy(newsp, "&amp;", 5);
     }
@@ -173,7 +173,7 @@ SV * GF_generate_attributes(HV * attrhv) {
         }
       } else {
         /* For the value part, escape special html chars, then dispose of result */
-        val = GF_escape_html(val, 0, 0, 0);
+        val = GF_escape_html(val, 0, 0, 0, 0);
         sv_catsv(attrstr, val);
         SvREFCNT_dec(val);
       }
@@ -185,7 +185,7 @@ SV * GF_generate_attributes(HV * attrhv) {
   return attrstr;
 }
 
-SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_addnewline) {
+SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_addnewline, int b_closetag) {
   int estimatedlen;
   SV * tagstr, * attrstr = 0;
 
@@ -200,9 +200,13 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
   if (val) {
     /* If asked to escape, escape the val */
     if (b_escapeval)
-      val = GF_escape_html(val, 0, 0, 0);
+      val = GF_escape_html(val, 0, 0, 0, 0);
     estimatedlen += SvCUR(val) + SvCUR(tag) + 3;
   }
+
+  /* If asked to close the tag, add ' /' */
+  if (b_closetag)
+    estimatedlen += 2;
 
   /* Create new string to put final result in */
   tagstr = newSV(estimatedlen);
@@ -215,7 +219,10 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
     sv_catsv(tagstr, attrstr);
     SvREFCNT_dec(attrstr);
   }
-  sv_catpvn(tagstr, ">", 1);
+  if (b_closetag)
+    sv_catpvn(tagstr, " />", 3);
+  else 
+    sv_catpvn(tagstr, ">", 1);
 
   if (val) {
     sv_catsv(tagstr, val);
@@ -230,5 +237,45 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
     sv_catpvn(tagstr, "\n", 1);
 
   return tagstr;
+}
+
+int GF_is_known_entity(char * sp, int i, int origlen) {
+
+  if (++i < origlen) {
+    /* Check for unicode ref (eg &#1234;) */
+    if (sp[i] == '#') {
+      int is_hex = 0;
+
+      /* Check for hex unicode ref (eg &#x12af;) */
+      if (i+1 < origlen && (sp[i+1] == 'x' || sp[i+1] == 'X')) {
+        is_hex = 1;
+        i++;
+      }
+
+      /* Not quite right, says "&#" and "&#;" are ok */
+      while (++i < origlen) {
+        if (sp[i] >= '0' && sp[i] <= '9') continue;
+        if (is_hex && ((sp[i] >= 'a' && sp[i] <= 'f') || (sp[i] >= 'A' && sp[i] <= 'F'))) continue;
+        if (sp[i] == ';' || sp[i] == ' ') return 1;
+        break;
+      }
+
+      return 0;
+
+    /* Check for entity ref (eg &nbsp;) */
+    } else if ((sp[i] >= 'a' && sp[i] <= 'z') || (sp[i] >= 'A' && sp[i] <= 'Z')) {
+      while (++i < origlen) {
+        if ((sp[i] >= 'a' && sp[i] <= 'z') || (sp[i] >= 'A' && sp[i] <= 'Z')) continue;
+        if (sp[i] == ';' || sp[i] == ' ') {
+          /* We should check to see if matched text string is known enity,
+             but it's not that important */
+          return 1;
+        }
+        break;
+      }
+      return 0;
+    }
+  }
+  return 0;
 }
 
