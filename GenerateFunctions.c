@@ -7,7 +7,7 @@
 #include "GenerateFunctions.h"
 
 SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b_leaveknown) {
-  int i;
+  int i, maxentitylen = 0;
   STRLEN origlen, extrachars;
   char * sp, *newsp, c, lastc;
   SV * newstr;
@@ -28,7 +28,7 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b
     c = sp[i];
     if (c == '<' || c == '>')
 	    extrachars += 3;
-    else if (c == '&' && (!b_leaveknown || !GF_is_known_entity(sp, i, origlen)))
+    else if (c == '&' && (!b_leaveknown || !GF_is_known_entity(sp, i, origlen, &maxentitylen)))
 	    extrachars += 4;
     else if (c == '"')
 	    extrachars += 5;
@@ -45,6 +45,17 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b
   if (b_sptonbsp && origlen == 1 && sp[0] == ' ') {
     extrachars += 5;
   }
+
+  /*
+   * Include maxentitylen in extrachars. Since in the actual substitution
+   * phase, we work backwards copying characters towards the end of the
+   * string as we go, we might overwrite part of an entity, and then try
+   * and call GF_is_known_entity() on the string, which searches forward,
+   * and then fails because we already overwrote the entity. So we always
+   * make sure we've got maxentitylen extra chars, and then use the perl
+   * OOK hack to offset the start of the string at the end
+   */
+  if (b_inplace) extrachars += maxentitylen;
 
   /* Create new SV, or grow existing SV */
   if (b_inplace) {
@@ -83,7 +94,7 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b
       newsp -= 4;
       memcpy(newsp, "&gt;", 4);
     }
-    else if (c == '&' && (!b_leaveknown || !GF_is_known_entity(sp, i, origlen))) {
+    else if (c == '&' && (!b_leaveknown || !GF_is_known_entity(sp, i, origlen, 0))) {
       newsp -= 5;
       memcpy(newsp, "&amp;", 5);
     }
@@ -110,6 +121,9 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b
     newsp -= 5;
     memcpy(newsp, "&nbsp;", 6);
   }
+
+  if (b_inplace && maxentitylen)
+    sv_chop(newstr, newsp);
 
   if (SvPV_nolen(newstr) != newsp) {
     croak("Unexpected length mismatch");
@@ -239,7 +253,8 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
   return tagstr;
 }
 
-int GF_is_known_entity(char * sp, int i, int origlen) {
+int GF_is_known_entity(char * sp, int i, int origlen, int *maxlen) {
+  int start = i;
 
   if (++i < origlen) {
     /* Check for unicode ref (eg &#1234;) */
@@ -256,24 +271,29 @@ int GF_is_known_entity(char * sp, int i, int origlen) {
       while (++i < origlen) {
         if (sp[i] >= '0' && sp[i] <= '9') continue;
         if (is_hex && ((sp[i] >= 'a' && sp[i] <= 'f') || (sp[i] >= 'A' && sp[i] <= 'F'))) continue;
-        if (sp[i] == ';' || sp[i] == ' ') return 1;
+        if (sp[i] == ';' || sp[i] == ' ') {
+          /* Keep track of maximum entity length */
+          i++;
+          if (maxlen && (i - start > *maxlen)) *maxlen = i-start;
+          return 1;
+        }
         break;
       }
-
-      return 0;
 
     /* Check for entity ref (eg &nbsp;) */
     } else if ((sp[i] >= 'a' && sp[i] <= 'z') || (sp[i] >= 'A' && sp[i] <= 'Z')) {
       while (++i < origlen) {
         if ((sp[i] >= 'a' && sp[i] <= 'z') || (sp[i] >= 'A' && sp[i] <= 'Z')) continue;
+        /* We should check to see if matched text string is known enity,
+           but it's not that important */
         if (sp[i] == ';' || sp[i] == ' ') {
-          /* We should check to see if matched text string is known enity,
-             but it's not that important */
+          /* Keep track of maximum entity length */
+          i++;
+          if (maxlen && (i - start > *maxlen)) *maxlen = i-start;
           return 1;
         }
         break;
       }
-      return 0;
     }
   }
   return 0;

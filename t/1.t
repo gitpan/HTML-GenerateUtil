@@ -1,7 +1,7 @@
 
 #########################
 
-use Test::More tests => 2029;
+use Test::More tests => 2059;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use Encode;
@@ -49,6 +49,66 @@ $a = '<>&"';
 $b = escape_html($a, 0);
 is ('<>&"', $a);
 is ('&lt;&gt;&amp;&quot;', $b);
+
+# Test with special string offsets
+
+$a = '<>&"';
+$a =~ s/^.//;
+is ('&gt;&amp;&quot;', escape_html($a, 0));
+escape_html($a, EH_INPLACE);
+is ('&gt;&amp;&quot;', $a);
+
+$b = '<>&"                               ';
+$b =~ s/^.//;
+$b =~ s/\s+$//;
+is ('&gt;&amp;&quot;', escape_html($b, 0));
+escape_html($b, EH_INPLACE);
+is ('&gt;&amp;&quot;', $b);
+
+is ('&amp;', escape_html('&', EH_LEAVEKNOWN));
+is ('&amp;', escape_html('&amp;', EH_LEAVEKNOWN));
+is ('&amp ', escape_html('&amp ', EH_LEAVEKNOWN));
+is ('&amp;amp', escape_html('&amp', EH_LEAVEKNOWN));
+is ('&nbsp;', escape_html('&nbsp;', EH_LEAVEKNOWN));
+is ('&nbsp ', escape_html('&nbsp ', EH_LEAVEKNOWN));
+is ('&amp;nbsp', escape_html('&nbsp', EH_LEAVEKNOWN));
+is ('&#1234;', escape_html('&#1234;', EH_LEAVEKNOWN));
+is ('&#1234 ', escape_html('&#1234 ', EH_LEAVEKNOWN));
+is ('&amp;#1234', escape_html('&#1234', EH_LEAVEKNOWN));
+is ('&amp;&amp;&amp;&amp;', escape_html('&&amp;&&amp;', EH_LEAVEKNOWN));
+is ('&amp;&amp;&amp;<br>&amp;', escape_html("&&amp;&\n&amp;", EH_LEAVEKNOWN | EH_LFTOBR));
+
+$a = '&';
+is ('&amp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&amp;';
+is ('&amp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&amp ';
+is ('&amp ', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&amp';
+is ('&amp;amp', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&nbsp;';
+is ('&nbsp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&nbsp ';
+is ('&nbsp ', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&nbsp';
+is ('&amp;nbsp', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&#1234;';
+is ('&#1234;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&#1234 ';
+is ('&#1234 ', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&#1234';
+is ('&amp;#1234', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = '&&amp;&&amp;';
+is ('&amp;&amp;&amp;&amp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE));
+$a = "&&amp;&\n&amp;";
+is ('&amp;&amp;&amp;<br>&amp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE | EH_LFTOBR));
+
+$a = "&&amp;&\n&amp;                             ";
+$a =~ s/\s+$//;
+is ('&amp;&amp;&amp;<br>&amp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE | EH_LFTOBR));
+is ('&amp;&amp;&amp;&lt;br&gt;&amp;', escape_html($a, EH_LEAVEKNOWN | EH_INPLACE | EH_LFTOBR));
+
+push @border, 'x' x $border_size;
 
 is ('a&amp;bc&nbsp;de&amp;f', escape_html('a&bc&nbsp;de&f', EH_LEAVEKNOWN));
 is ('a&amp;bc&nbsp de&amp;x', escape_html('a&bc&nbsp de&x', EH_LEAVEKNOWN));

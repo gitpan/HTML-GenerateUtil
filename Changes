@@ -15,3 +15,6 @@ Revision history for Perl extension HTML::GenerateUtil.
 	- add "leaveknown" entities option
   - add "closetag" option
 
+1.04  Thu Jun 15 09:42:00 2004
+	- fix memory overrun when EH_LEAVEKNOWN and EH_INPLACE used together
+
