@@ -80,7 +80,7 @@ INIT:
   HV * attrhv = 0;
   int b_escapeval, b_addnewline, b_closetag;
 
-  if (!SvOK(tag) || !SvPOK(tag)) {
+  if (!SvOK(tag)) {
     XSRETURN_UNDEF;
   }
   if (SvOK(attr) && (!SvROK(attr) || (SvROK(attr) && SvTYPE(SvRV(attr)) != SVt_PVHV))) {

@@ -1,7 +1,7 @@
 
 #########################
 
-use Test::More tests => 4014;
+use Test::More tests => 4015;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use strict;
@@ -21,6 +21,9 @@ is ('<foo a="abc">ba<>"&r</foo>', generate_tag('foo', { a => 'abc' }, 'ba<>"&r',
 is ('<foo a="abc">ba&lt;&gt;&quot;&amp;r</foo>', generate_tag('foo', { a => 'abc' }, 'ba<>"&r', GT_ESCAPEVAL));
 is ('<foo a="abc" />ba&lt;&gt;&quot;&amp;r</foo>', generate_tag('foo', { a => 'abc' }, 'ba<>"&r', GT_ESCAPEVAL | GT_CLOSETAG));
 is ('<foo a="abc">ba&lt;&gt;&quot;&amp;r</foo>' . "\n", generate_tag('foo', { a => 'abc' }, 'ba<>"&r', GT_ESCAPEVAL | GT_ADDNEWLINE));
+
+our $Val = -2209132800;
+is ("<td a=\"abc\">-2209132800</td>\n", generate_tag('td', { a => 'abc' }, $Val, 2));
 
 push @border, 'x' x $border_size;
 

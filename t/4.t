@@ -45,6 +45,9 @@ sub escape_html_leak {
     my $n = escape_html($t2, EH_INPLACE | EH_SPTONBSP);
     $t1 = escape_html($t1, EH_INPLACE | EH_SPTONBSP);
     $t2 = escape_html($t2, EH_INPLACE | EH_SPTONBSP);
+
+    my $o = "<&1234;abc&&nbsp;&abc&xabc1;&asd";
+    $t1 = escape_html($o, EH_INPLACE | EH_LEAVEKNOWN);
   }
 }
 
@@ -68,6 +71,8 @@ sub generate_tag_leak {
     my $e = generate_tag('tag', { a => 'abc' }, 'some text', 0);
     my $f = generate_tag('tag', { a => 'abc' }, 'some <>&; text', GT_ESCAPEVAL);
     my $g = generate_tag('tag', { a => 'abc' }, 'some <>&; text' . "\x{1234}", GT_ESCAPEVAL);
+    my $h = generate_tag(123, { a => 'abc' }, 123, GT_ESCAPEVAL);
+    my $i = generate_tag(-123123123, { a => 'abc' }, -123123123, GT_ESCAPEVAL);
   }
 }
 

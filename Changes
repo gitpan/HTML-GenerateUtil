@@ -18,3 +18,6 @@ Revision history for Perl extension HTML::GenerateUtil.
 1.04  Thu Jun 15 09:42:00 2004
 	- fix memory overrun when EH_LEAVEKNOWN and EH_INPLACE used together
 
+1.05  Thu Jun 23 14:36:00 2004
+	- fix crash when passing non-strings in values to generate_tag
+

@@ -200,10 +200,13 @@ SV * GF_generate_attributes(HV * attrhv) {
 }
 
 SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_addnewline, int b_closetag) {
-  int estimatedlen;
+  char * tagsp, * valsp;
+  int taglen, vallen, estimatedlen;
   SV * tagstr, * attrstr = 0;
 
-  estimatedlen = SvCUR(tag) + 3 + (b_addnewline ? 1 : 0);
+  /* Force tag to string when getting length */
+  tagsp = SvPV(tag, taglen);
+  estimatedlen = taglen + 3 + (b_addnewline ? 1 : 0);
 
   /* Create attributes as string */
   if (attrhv) {
@@ -215,7 +218,9 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
     /* If asked to escape, escape the val */
     if (b_escapeval)
       val = GF_escape_html(val, 0, 0, 0, 0);
-    estimatedlen += SvCUR(val) + SvCUR(tag) + 3;
+    /* Force value to string when getting length */
+    valsp = SvPV(val, vallen);
+    estimatedlen += vallen + SvCUR(tag) + 3;
   }
 
   /* If asked to close the tag, add ' /' */

@@ -1,7 +1,7 @@
 
 #########################
 
-use Test::More tests => 2059;
+use Test::More tests => 2060;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use Encode;
@@ -16,6 +16,7 @@ ok (!defined escape_html(undef, EH_INPLACE));
 push @border, 'x' x $border_size;
 
 is ('1', escape_html(1, 0));
+is ('-1000000000', escape_html(-1000000000, 0));
 is ('1.25', escape_html(1.25, 0));
 
 my ($a, $b) = (1, 1.25);

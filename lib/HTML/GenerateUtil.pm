@@ -28,7 +28,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.04';
+our $VERSION = '1.05';
 
 require XSLoader;
 XSLoader::load('HTML::GenerateUtil', $VERSION);
