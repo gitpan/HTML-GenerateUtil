@@ -1,0 +1,101 @@
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+
+#include "ppport.h"
+#include "GenerateFunctions.h"
+
+#define B_INPLACE 1
+#define B_LFTOBR 2
+#define B_SPTONBSP 4
+
+#define B_ESCAPEVAL 1
+#define B_ADDNEWLINE 2
+
+MODULE = HTML::GenerateUtil		PACKAGE = HTML::GenerateUtil		
+
+SV *
+escape_html(str, mode)
+  SV * str
+  int mode
+INIT:
+  int b_inplace, b_lftobr, b_sptonbsp;
+  SV * newstr;
+
+  /* Check it's a string */
+  if (!SvOK(str)) {
+    XSRETURN_UNDEF;
+  }
+
+  /* Get flags */
+  b_inplace = mode & B_INPLACE;
+  b_lftobr = mode & B_LFTOBR;
+  b_sptonbsp = mode & B_SPTONBSP;
+CODE:
+
+  /* Call helper function */
+  newstr = GF_escape_html(str, b_inplace, b_lftobr, b_sptonbsp);
+
+  if (!newstr)
+    XSRETURN_UNDEF;
+
+  /* Increment reference count because RETVAL = does implicit sv_2mortal later */
+  if (b_inplace)
+    SvREFCNT_inc(newstr);
+
+  RETVAL = newstr;
+OUTPUT:
+  RETVAL
+
+SV *
+generate_attributes(attr)
+  SV * attr
+INIT:
+  SV * attrstr;
+  HV * attrhv;
+
+  if (!SvOK(attr) || !SvROK(attr) || SvTYPE(SvRV(attr)) != SVt_PVHV) {
+    XSRETURN_UNDEF;
+  }
+
+  attrhv = (HV *)SvRV(attr);
+CODE:
+  attrstr = GF_generate_attributes(attrhv);
+
+  RETVAL = attrstr;
+OUTPUT:
+  RETVAL
+
+SV *
+generate_tag(tag, attr, val, mode)
+  SV * tag
+  SV * attr
+  SV * val
+  int mode
+INIT:
+  SV * tagstr;
+  HV * attrhv = 0;
+  int b_escapeval, b_addnewline;
+
+  if (!SvOK(tag) || !SvPOK(tag)) {
+    XSRETURN_UNDEF;
+  }
+  if (SvOK(attr) && (!SvROK(attr) || (SvROK(attr) && SvTYPE(SvRV(attr)) != SVt_PVHV))) {
+    XSRETURN_UNDEF;
+  }
+  if (!SvOK(val)) {
+    val = 0;
+  }
+
+  attrhv = SvOK(attr) ? (HV *)SvRV(attr) : 0;
+
+  /* Get flags */
+  b_escapeval = mode & B_ESCAPEVAL;
+  b_addnewline = mode & B_ADDNEWLINE;
+CODE:
+  tagstr = GF_generate_tag(tag, attrhv, val, b_escapeval, b_addnewline);
+
+  RETVAL = tagstr;
+OUTPUT:
+  RETVAL
+
