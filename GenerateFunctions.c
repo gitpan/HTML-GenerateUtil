@@ -134,28 +134,23 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b
 }
 
 SV * GF_generate_attributes(HV * attrhv) {
-  int i, j, estimatedlen, vallen;
+  int i, j, estimatedlen = 1;
   I32 keylen;
   char * key, tmp[64];
-  SV * attrstr, * val, **av_val;
+  SV * attrstr, * val, *rval;
 
   /* Iterate through keys to work out an estimated final length */
-  estimatedlen = 1;
   while ((val = hv_iternextsv(attrhv, &key, &keylen))) {
     estimatedlen += keylen + 1;
-    if (SvOK(val)) {
-      if (SvPOK(val)) {
-        estimatedlen += SvCUR(val) + 3;
-      } else {
-        SvPV(val, vallen);
-        estimatedlen += vallen + 3;
-      }
-    }
+    estimatedlen += GF_estimate_attribute_value_len(val) + 3;
   }
+
+  /* warn("estimated len: %d", estimatedlen); */
 
   attrstr = newSV(estimatedlen);
   SvPOK_on(attrstr);
 
+  /* Now iteratre and build actual string */
   hv_iterinit(attrhv);
   while ((val = hv_iternextsv(attrhv, &key, &keylen))) {
 
@@ -179,22 +174,12 @@ SV * GF_generate_attributes(HV * attrhv) {
     /* Add '="value"' part if present*/
     if (SvOK(val)) {
       sv_catpvn(attrstr, "=\"", 2);
-
-      /* If value is reference to array with one item, use that unescaped */
-      if (SvOK(val) && SvROK(val) && SvTYPE(SvRV(val)) == SVt_PVAV) {
-        if ((av_val = av_fetch((AV *)SvRV(val), 0, 0)) && SvOK(val = *av_val)) {
-          sv_catsv(attrstr, val);
-        }
-      } else {
-        /* For the value part, escape special html chars, then dispose of result */
-        val = GF_escape_html(val, 0, 0, 0, 0);
-        sv_catsv(attrstr, val);
-        SvREFCNT_dec(val);
-      }
-
+      GF_generate_attribute_value(attrstr, val);
       sv_catpvn(attrstr, "\"", 1);
     }
   }
+
+  /* warn("real len: %d, %s", SvCUR(attrstr), SvPV_nolen(attrstr)); */
 
   return attrstr;
 }
@@ -220,7 +205,7 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
       val = GF_escape_html(val, 0, 0, 0, 0);
     /* Force value to string when getting length */
     valsp = SvPV(val, vallen);
-    estimatedlen += vallen + SvCUR(tag) + 3;
+    estimatedlen += vallen + taglen + 3;
   }
 
   /* If asked to close the tag, add ' /' */
@@ -302,5 +287,112 @@ int GF_is_known_entity(char * sp, int i, int origlen, int *maxlen) {
     }
   }
   return 0;
+}
+
+int GF_estimate_attribute_value_len(SV * val) {
+  int vallen; I32 valtype;
+
+  /* If reference, de-reference ... */
+  if (SvROK(val)) {
+    val = SvRV(val);
+  }
+
+  valtype = SvTYPE(val);
+
+  /* Array case */
+  if (valtype == SVt_PVAV) {
+    int estimatedlen = 0;
+    AV * aval = (AV *)val;
+    I32 alen = av_len(aval), i;
+    for (i = 0; i <= alen; i++) {
+      SV **av_val;
+      if ((av_val = av_fetch(aval, i, 0)) && SvOK(val = *av_val)) {
+        estimatedlen += GF_estimate_attribute_value_len(val) + 1;
+      }
+    }
+    return estimatedlen;
+  }
+
+  /* Hash case */
+  if (valtype == SVt_PVHV) {
+    int estimatedlen = 0;
+    HV * hval = (HV *)val;
+    char * key; I32 keylen, first = 0;
+    hv_iterinit(hval);
+    while ((val = hv_iternextsv(hval, &key, &keylen))) {
+      estimatedlen += keylen + 1;
+    }
+    return estimatedlen;
+  }
+
+  /* Ignore other non-scalar types */
+  if (!SvOK(val)) return 0;
+
+  /* Most common case of a string */
+  if (SvPOK(val)) return SvCUR(val);
+
+  /* Other SV case, turn it into a string */
+  if (SvOK(val)) return (SvPV(val, vallen), vallen);
+
+  return 0;
+}
+
+void GF_generate_attribute_value(SV * attrstr, SV * val) {
+  I32 valtype;
+  int no_escape = 0;
+
+  /* If reference, de-reference ... */
+  if (SvROK(val)) {
+    val = SvRV(val);
+    no_escape = 1;
+  }
+
+  valtype = SvTYPE(val);
+
+  /* Array? Iterate over array items space separated... */
+  if (valtype == SVt_PVAV) {
+    AV * aval = (AV *)val;
+    I32 alen = av_len(aval), i;
+    for (i = 0; i <= alen; i++) {
+      SV **av_val;
+      if ((av_val = av_fetch(aval, i, 0)) && SvOK(val = *av_val)) {
+        GF_generate_attribute_value(attrstr, val);
+        if (i != alen) sv_catpvn(attrstr, " ", 1);
+      }
+    }
+    return;
+  }
+
+  /* Hash? Iterate over keys space separated... */
+  if (valtype == SVt_PVHV) {
+    HV * hval = (HV *)val;
+    char * key; I32 keylen;
+    I32 hlen = hv_iterinit(hval), i = 0;
+    HE * hentry;
+    while (hentry = hv_iternext(hval)) {
+      key = hv_iterkey(hentry, &keylen);
+      sv_catpvn(attrstr, key, keylen);
+      if (++i != hlen) sv_catpvn(attrstr, " ", 1);
+    }
+    return;
+  }
+
+  /* Ignore other non-scalar types */
+  if (!SvOK(val)) return;
+
+  /* Otherwise just append to attribute string */
+
+  /* If value was reference, use that unescaped */
+  if (no_escape) {
+    sv_catsv(attrstr, val);
+
+  /* For the value part, escape special html chars, then dispose of result */
+  } else {
+    val = GF_escape_html(val, 0, 0, 0, 0);
+    sv_catsv(attrstr, val);
+    SvREFCNT_dec(val);
+  }
+
+  return;
 }
 

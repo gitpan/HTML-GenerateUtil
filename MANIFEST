@@ -1,14 +1,18 @@
 Changes
 GenerateFunctions.c
 GenerateFunctions.h
+GenerateFunctions.o
+GenerateUtil.bs
+GenerateUtil.c
+GenerateUtil.o
 GenerateUtil.xs
 lib/HTML/GenerateUtil.pm
 Makefile.PL
 MANIFEST			This list of files
+META.yml			Module meta-data (added by MakeMaker)
 ppport.h
 README
 t/1.t
 t/2.t
 t/3.t
 t/4.t
-META.yml                                 Module meta-data (added by MakeMaker)

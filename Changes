@@ -21,3 +21,6 @@ Revision history for Perl extension HTML::GenerateUtil.
 1.05  Thu Jun 23 14:36:00 2004
 	- fix crash when passing non-strings in values to generate_tag
 
+1.06  Thu Nov 11 16:17:00 2004
+	- allow passing of array refs and hash refs as values to generate_attributes
+

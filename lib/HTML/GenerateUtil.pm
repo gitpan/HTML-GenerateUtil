@@ -28,7 +28,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.05';
+our $VERSION = '1.06';
 
 require XSLoader;
 XSLoader::load('HTML::GenerateUtil', $VERSION);
@@ -190,17 +190,44 @@ Useful for generating HTML tags. The I<values> of each hash
 entry are escaped with escape_html() before being added
 to the final string.
 
-If you want to use a raw value unescaped, pass it as an
-array ref with a single item. Eg.
+If you want to use a raw value unescaped, pass it as a
+scalar ref with a single item. Eg.
 
   {
-    aaa => [ '<blah>' ],
-    bbb => '<blah'>
+    aaa => \'<blah>',
+    bbb => '<blah>'
   }
 
 Is turned into:
 
   q{aaa="<blah>" bbb="&lt;blah&gt;"}
+
+If the value is an array ref, then the individual items
+are joined together with a space separator. Eg.
+
+  {
+    class => [ 'class1', 'class2', \'<blah>' ],
+    aaa => 'bbb'
+  }
+
+Is turned into:
+
+  q{aaa="bbb" class="class1 class2 <blah>"}
+
+If the value is a hash ref, then the individual keys
+are joined together with a space separator. Eg.
+
+  {
+    class => { class1 => 1, class2 => 2 ],
+    aaa => 'bbb'
+  }
+
+Is turned into:
+
+  q{aaa="bbb" class="class2 class1"}
+
+Keys are always escaped since you can't have a scalar
+reference as a key.
 
 =item C<generate_tag($Tag, $AttrHashRef, $Value, $Mode)>
 

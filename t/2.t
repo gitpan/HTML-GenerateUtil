@@ -1,9 +1,10 @@
 
 #########################
 
-use Test::More tests => 1016;
+use Test::More tests => 1031;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag);
+use Data::Dumper;
 use strict;
 
 my $border_size = 100;
@@ -14,9 +15,25 @@ is ('abc="abc"', generate_attributes({ AbC => 'abc' }));
 is ('abc', generate_attributes({ AbC => undef }));
 is ('a="1"', generate_attributes({ a => 1 }));
 is ('a="1.25"', generate_attributes({ a => 1.25 }));
+is ('abc=""', generate_attributes({ AbC => \undef }));
 
-is ('a="&<>""', generate_attributes({ a => [ '&<>"' ] }));
+is ('a="&<>""', generate_attributes({ a => \'&<>"' }));
+is ('a="&amp;&lt;&gt;&quot;"', generate_attributes({ a => '&<>"' }));
 is ('a=""', generate_attributes({ a => [ ] }));
+is ('a="aaa"', generate_attributes({ a => [ qw(aaa) ] }));
+is ('a="aaa bbb"', generate_attributes({ a => [ qw(aaa bbb) ] }));
+is ('a="aaa bbb ccc"', generate_attributes({ a => [ qw(aaa bbb ccc) ] }));
+is ('a="aaa bbb &amp;&lt;&gt;&quot; ccc"', generate_attributes({ a => [ qw(aaa bbb), '&<>"', qw(ccc) ] }));
+is ('a="&<>""', generate_attributes({ a => [ \'&<>"' ]}));
+is ('a="aaa &<>""', generate_attributes({ a => [ 'aaa', \'&<>"' ]}));
+is ('a="aaa &<>" bbb"', generate_attributes({ a => [ 'aaa', \'&<>"', 'bbb' ]}));
+is ('a=""', generate_attributes({ a => [ undef ]}));
+is ('a="aaa"', generate_attributes({ a => [ undef, 'aaa' ]}));
+is ('a="aaa "', generate_attributes({ a => [ 'aaa', undef ]}));
+is ('a=""', generate_attributes({ a => { } }));
+is ('a="aaa"', generate_attributes({ a => { aaa => 1 } }));
+($a = generate_attributes({ a => { aaa => 1, bbb => 2 } })) =~ s/a="(.*)"/$1/;
+is ('aaa bbb', join(' ', sort $a =~ /(\S+)\s*/g));
 
 push @border, 'x' x $border_size;
 
