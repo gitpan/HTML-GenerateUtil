@@ -21,7 +21,7 @@ SV * GF_escape_html(SV * str, int b_inplace, int b_lftobr, int b_sptonbsp, int b
 
   /* Calculate extra space required */
   extrachars = 0;
-  lastc = '\0';
+  c = '\0';
   for (i = 0; i < origlen; i++) {
     /* Need to keep track of previous char for '  ' => ' &nbsp;' expansion */
     lastc = c;
@@ -186,7 +186,7 @@ SV * GF_generate_attributes(HV * attrhv) {
 
 SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_addnewline, int b_closetag) {
   char * tagsp, * valsp;
-  int taglen, vallen, estimatedlen;
+  STRLEN taglen, vallen, estimatedlen;
   SV * tagstr, * attrstr = 0;
 
   /* Force tag to string when getting length */
@@ -243,6 +243,77 @@ SV * GF_generate_tag(SV * tag, HV * attrhv, SV * val, int b_escapeval, int b_add
   return tagstr;
 }
 
+static char * hexlookup = "0123456789ABCDEF";
+
+SV * GF_escape_uri(SV * str, SV * escchars, int b_inplace) {
+  int i;
+  STRLEN origlen, esclen, extrachars;
+  char * sp, *newsp, *escsp;
+  unsigned char c;
+  SV * newstr;
+
+  /* Get string pointer and length (in bytes) */
+  if (b_inplace) {
+    sp = SvPV_force(str, origlen);
+  } else {
+    sp = SvPV(str, origlen);
+  }
+
+  escsp = SvPV(escchars, esclen);
+
+  /* Calculate extra space required */
+  extrachars = 0;
+  for (i = 0; i < origlen; i++) {
+    c = (unsigned char)sp[i];
+    /* Always escape control on 8-bit chars or chars in our escape set */
+    if (c <= 0x20 || c >= 0x80 || memchr(escsp, c, esclen)) {
+      extrachars += 2;
+    }
+  }
+
+  /* Create new SV, or grow existing SV */
+  if (b_inplace) {
+    newstr = str;
+    /* Always turn of utf8-ness in escaped string */
+    SvUTF8_off(newstr);
+    SvGROW(newstr, origlen + extrachars + 1);
+  } else {
+    newstr = newSV(origlen + extrachars + 1);
+    SvPOK_on(newstr);
+  }
+
+  /* Set the length of the string */
+  SvCUR_set(newstr, origlen + extrachars);
+
+  /* Now do actual replacement (need to work
+     backward for inplace change to work */
+
+  /* Original string might have moved due to grow */
+  sp = SvPV_nolen(str);
+
+  /* Null terminate new string */
+  newsp = SvPV_nolen(newstr) + origlen + extrachars;
+  *newsp = '\0';
+
+  for (i = origlen-1; i >= 0; i--) {
+    c = (unsigned char)sp[i];
+    if (c <= 0x20 || c >= 0x80 || memchr(escsp, c, esclen)) {
+      newsp -= 3;
+      newsp[0] = '%';
+      newsp[1] = hexlookup[(c>>4) & 0x0f];
+      newsp[2] = hexlookup[c & 0x0f];
+    } else
+      *--newsp = (char)c;
+  }
+
+  if (newsp != SvPV_nolen(newstr)) {
+    croak("Unexpected length mismatch");
+    return 0;
+  }
+
+  return newstr;
+}
+
 int GF_is_known_entity(char * sp, int i, int origlen, int *maxlen) {
   int start = i;
 
@@ -290,7 +361,8 @@ int GF_is_known_entity(char * sp, int i, int origlen, int *maxlen) {
 }
 
 int GF_estimate_attribute_value_len(SV * val) {
-  int vallen; I32 valtype;
+  STRLEN vallen;
+  I32 valtype;
 
   /* If reference, de-reference ... */
   if (SvROK(val)) {

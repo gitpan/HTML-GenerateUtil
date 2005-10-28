@@ -1,95 +1,120 @@
 
-use Test::More;
-eval "use GTop ()";
-if ($@) {
-  plan skip_all => 'No GTop installed, no memory leak tests';
-} else {
-  plan tests => 3;
-}
-use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
+#########################
+
+use Test::More tests => 1543;
+BEGIN { use_ok('HTML::GenerateUtil') };
+use HTML::GenerateUtil qw(:consts escape_uri);
+use Encode;
 use strict;
 
-my $NIter = 10000;
+my $border_size = 100;
+my @border = 'x' x $border_size;
 
-my $GTop = GTop->new;
+ok (!defined escape_uri(undef, 0));
+ok (!defined escape_uri(undef, EU_INPLACE));
 
-TestLeak(\&escape_html_leak);
-TestLeak(\&generate_attributes_leak);
-TestLeak(\&generate_tag_leak);
+push @border, 'x' x $border_size;
 
-sub escape_html_leak {
-  for (1 .. $NIter) {
-    my $a = escape_html('abc', 0);
-    my $b = escape_html('<a>b"c&', 0);
-    my ($t1, $t2) = ('abc', '<a>b"c&');
-    my $c = escape_html($t1, EH_INPLACE);
-    my $d = escape_html($t2, EH_INPLACE);
-    $t1 = escape_html($t1, EH_INPLACE);
-    $t2 = escape_html($t2, EH_INPLACE);
+is ('1', escape_uri(1, 0));
+is ('-1000000000', escape_uri(-1000000000, 0));
+is ('1.25', escape_uri(1.25, 0));
 
-    my $e = escape_html('abc', EH_LFTOBR);
-    my $f = escape_html('<a>b"c&' . "\n", EH_LFTOBR);
-    my $g = escape_html('abc' . "\x{1234}", 0);
-    my $h = escape_html('<a>b"c&' . "\x{1234}", 0);
+my ($a, $b) = (1, 1.25);
+escape_uri($a, EU_INPLACE);
+escape_uri($b, EU_INPLACE);
+is ('1', $a);
+is ('1.25', $b);
 
-    ($t1, $t2) = ('abc' . "\x{1234}", '<a>b"c&' . "\x{1234}");
-    my $i = escape_html($t1, EH_INPLACE);
-    my $j = escape_html($t2, EH_INPLACE);
-    $t1 = escape_html($t1, EH_INPLACE);
-    $t2 = escape_html($t2, EH_INPLACE);
+is ('%3C', escape_uri('<', 0));
+is ('%26', escape_uri('&', 0));
+is ('%3F', escape_uri('?', 0));
+is ('%25', escape_uri('%', 0));
+is ('%3E', escape_uri('>', 0));
+is ('%23', escape_uri('#', 0));
 
-    my $k = escape_html(' ', EH_SPTONBSP);
-    my $l = escape_html('    ', EH_SPTONBSP);
-    ($t1, $t2) = (' ', '    ');
-    my $m = escape_html($t1, EH_INPLACE | EH_SPTONBSP);
-    my $n = escape_html($t2, EH_INPLACE | EH_SPTONBSP);
-    $t1 = escape_html($t1, EH_INPLACE | EH_SPTONBSP);
-    $t2 = escape_html($t2, EH_INPLACE | EH_SPTONBSP);
+push @border, 'x' x $border_size;
 
-    my $o = "<&1234;abc&&nbsp;&abc&xabc1;&asd";
-    $t1 = escape_html($o, EH_INPLACE | EH_LEAVEKNOWN);
-  }
+is ('%3C%26%3F%25%3E%23', escape_uri('<&?%>#', 0));
+
+push @border, 'x' x $border_size;
+
+is ('%20', escape_uri(' ', 0));
+is ('abc', escape_uri('abc', 0));
+is ('%25abc%25', escape_uri('%abc%', 0));
+is ('%3Cabc%3E', escape_uri('<abc>', 0));
+is ('123%3Cabc%3E123', escape_uri('123<abc>123', 0));
+is ('%3Cabc%3E123', escape_uri('<abc>123', 0));
+is ('123%3Cabc%3E', escape_uri('123<abc>', 0));
+is ('123%3C%3Eabc', escape_uri('123<>abc', 0));
+
+push @border, 'x' x $border_size;
+
+$a = '<&?%>#';
+$b = escape_uri($a, 0);
+is ('<&?%>#', $a);
+is ('%3C%26%3F%25%3E%23', $b);
+
+# Test with special string offsets
+
+$a = '<&?%>#';
+$a =~ s/^.//;
+is ('%26%3F%25%3E%23', escape_uri($a, 0));
+escape_uri($a, EU_INPLACE);
+is ('%26%3F%25%3E%23', $a);
+
+$b = '<&?%>#                               ';
+$b =~ s/^.//;
+$b =~ s/\s+$//;
+is ('%26%3F%25%3E%23', escape_uri($b, 0));
+escape_uri($b, EU_INPLACE);
+is ('%26%3F%25%3E%23', $b);
+
+push @border, 'x' x $border_size;
+
+$a = '<&?%>#' . "\x{1234}";
+$b = escape_uri($a, 0);
+is ('<&?%>#' . "\x{1234}", $a);
+is ('%3C%26%3F%25%3E%23%E1%88%B4', $b);
+ok (Encode::is_utf8($a));
+ok (!Encode::is_utf8($b));
+
+push @border, 'x' x $border_size;
+
+for (1 .. 255) {
+  $a = chr($_);
+  $b = escape_uri($a);
+
+  my ($c) = ($a =~ /^([A-Za-z0-9\-_.!~*'()])$/);
+  my ($d) = ($a =~ /^([\x00-\x1F "#\$%&+\,\/:;<=>?@\[\]\^`{}\\|\x7F\x80-\xFF])$/);
+
+  ok(defined $c || defined $d);
+  is($c, $b) if $c;
+  is(sprintf('%%%02X', ord($d)), $b) if $d;
 }
 
-sub generate_attributes_leak {
-  for (1 .. $NIter) {
-    my $a = generate_attributes({ a => 'abc' });
-    my $b = generate_attributes({ a => 'abc', d => 'efg' });
-    my $c = generate_attributes({ ALongerString => 'abc', AnotherLongerString => 'efg' });
-    my $d = generate_attributes({ ALongerString => 'And something with funnies <>&"', AnotherLongerString => 'something with funnies <>&" efg' });
-
-    my $i = generate_attributes({ a => 'abc' . "\x{1234}" });
-    my $k = generate_attributes({ ALongerString => 'abc', AnotherLongerString => 'efg' . "\x{1234}" });
+for (1 .. 1000) {
+  my $str = '';
+  for (1 .. int(rand(30))) {
+    my $rnd = rand();
+    if ($rnd < 0.05)    { $str .= '<'; }
+    elsif ($rnd < 0.10) { $str .= '&'; }
+    elsif ($rnd < 0.15) { $str .= '?'; }
+    elsif ($rnd < 0.20) { $str .= '%'; }
+    elsif ($rnd < 0.25) { $str .= 'a'; }
+    elsif ($rnd < 0.30) { $str .= ' '; }
+    elsif ($rnd < 0.98) { $str .= chr(ord('a') + rand(26)); }
+    else { $str .= chr(ord('a') + rand(10000)); }
   }
+
+  my $pstr = $str;
+  Encode::_utf8_off($pstr);
+  $pstr =~ s/([^A-Za-z0-9\-_.!~*`()])/sprintf('%%%02X', ord($1))/ge;
+
+  my $estr = escape_uri($str, 0);
+  is ($estr, $pstr);
 }
 
-sub generate_tag_leak {
-  for (1 .. $NIter) {
-    my $a = generate_tag('tag', undef, undef, 0);
-    my $b = generate_tag('tag', { a => 'abc' }, undef, 0);
-    my $d = generate_tag('tag', undef, 'some text', 0);
-    my $e = generate_tag('tag', { a => 'abc' }, 'some text', 0);
-    my $f = generate_tag('tag', { a => 'abc' }, 'some <>&; text', GT_ESCAPEVAL);
-    my $g = generate_tag('tag', { a => 'abc' }, 'some <>&; text' . "\x{1234}", GT_ESCAPEVAL);
-    my $h = generate_tag(123, { a => 'abc' }, 123, GT_ESCAPEVAL);
-    my $i = generate_tag(-123123123, { a => 'abc' }, -123123123, GT_ESCAPEVAL);
-  }
-}
+push @border, 'x' x $border_size;
 
-sub TestLeak {
-  my $Sub = shift;
-
-  my $Before = $GTop->proc_mem($$)->size;
-  eval {
-    $Sub->();
-  };
-  if ($@) {
-    ok(0, "leak test died: $@");
-  } else {
-    my $After = $GTop->proc_mem($$)->size;
-    my $Growth = ($After - $Before)/1024;
-
-    ok( $Growth < 20, "leak test > 20k? Growth=${Growth}k");
-  }
-}
+is(join('', @border), 'x' x ($border_size * @border));
 

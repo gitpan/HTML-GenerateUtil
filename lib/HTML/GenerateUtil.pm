@@ -12,13 +12,15 @@ our @ISA = qw(Exporter);
 # will save memory.
 our %EXPORT_TAGS = (
   'all' => [ qw(
-    escape_html generate_attributes generate_tag
+    escape_html generate_attributes generate_tag escape_uri
     EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
     GT_ESCAPEVAL GT_ADDNEWLINE GT_CLOSETAG
+    EU_INPLACE
   ) ],
   'consts' => [ qw(
     EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
     GT_ESCAPEVAL GT_ADDNEWLINE GT_CLOSETAG
+    EU_INPLACE
   ) ]
 );
 
@@ -28,7 +30,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.06';
+our $VERSION = '1.07';
 
 require XSLoader;
 XSLoader::load('HTML::GenerateUtil', $VERSION);
@@ -42,7 +44,15 @@ use constant GT_ESCAPEVAL => 1;
 use constant GT_ADDNEWLINE => 2;
 use constant GT_CLOSETAG => 4;
 
+use constant EU_INPLACE => 1;
+
 # Preloaded methods go here.
+
+my $escape_all = '"#$%&+,/:;<=>?@[]^`{}|\\' . "\x7f";
+my $escape_lite = '"$+,/:;<=>@[]^`{}|\\' . "\x7f";
+
+sub escape_uri { return escape_uri_internal($_[0], $_[2] || $escape_all, $_[1] || 0) }
+sub escape_uri_lite { return escape_uri_internal($_[0], $_[2] || $escape_lite, $_[1] || 0) }
 
 1;
 __END__
@@ -53,7 +63,7 @@ HTML::GenerateUtil - Routines useful when generating HTML output
 
 =head1 SYNOPSIS
 
-  use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag :consts);
+  use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag escape_uri :consts);
 
   my $Html = "text < with > things & that need \x{1234} escaping";
   $Html = escape_html($Html, 0);
@@ -70,6 +80,11 @@ HTML::GenerateUtil - Routines useful when generating HTML output
   ... but even better ...
 
   $Html = generate_tag('a', { href => 'http://...', title => 'blah' }, $Html, 0);
+
+  ... also you might want something like ...
+
+  my $URI = 'http://host/?' . join ";", map { $_ => escape_uri($Params{$_}) } keys %Params;
+  $Html = generate_tag('a', { href => $URI }, $Html, 0);
 
 =head1 DESCRIPTION
 
@@ -263,7 +278,68 @@ which is probably not what you want
 
 =back
 
+=item C<escape_uri($Uri, [ $Mode, $EscapeChars ])>
+
+Escape unsafe characters in a uri.
+
+This escapes all characters not in the unreserved character set.
+As a regexp that is:
+
+  [^A-Za-z0-9\-_.!~*'()]
+
+or
+
+  [\x00-\x1F "#$%&+,/:;<=>?@\[\]^`{}|\\\x7f-\xff];
+
+Some other things to note:
+
+=over 4
+
+=item *
+
+The escaping assumes all strings with high-chars are utf-8 strings. That
+is it first turns off any utf-8 bit on the string, and then encodes each
+byte to it's corresponding octet.
+
+=item *
+
+When encoding a uri with parameters, you'll probably want to encode each
+parameter first and then join it to the final string, something like:
+
+  my %uri_params = ( ... )
+  my $uri = "http://hostname.com/somepath/?" .
+    join ";",
+    map { $_ . "=" . escape_uri($uri_params{$_}) } 
+    keys %uri_params;
+
+Assuming your keys don't have any unreserved characters in them, a common
+practice in many peoples design.
+
+Doing something like:
+
+  my $uri = escape_uri("http://hostname.com/somepath/?a=p1");
+
+Will escape the '?', not giving you what you expect at the other end.
+
 =back
+
+C<$Mode> is a bit field with the additional options:
+
+=over 4
+
+=item *
+
+C<EU_INPLACE> - modify in-place, otherwise return new copy
+
+=back
+
+=back
+
+=head1 BUGS AND LIMITATIONS
+
+The EH_LEAVEKNOWN option is just heuristic, and accepts anything
+that even looks like an entity reference, even if it isn't a
+correct one. I'm not sure if this is a securit issue or not.
 
 =head1 SEE ALSO
 

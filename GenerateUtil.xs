@@ -103,3 +103,35 @@ CODE:
 OUTPUT:
   RETVAL
 
+SV *
+escape_uri_internal(str, escstr, mode)
+  SV * str
+  SV * escstr
+  int mode
+INIT:
+  int b_inplace;
+  SV * newstr;
+
+  /* Check it's a string */
+  if (!SvOK(str) || !SvOK(escstr)) {
+    XSRETURN_UNDEF;
+  }
+
+  /* Get flags */
+  b_inplace = mode & B_INPLACE;
+CODE:
+
+  /* Call helper function */
+  newstr = GF_escape_uri(str, escstr, b_inplace);
+
+  if (!newstr)
+    XSRETURN_UNDEF;
+
+  /* Increment reference count because RETVAL = does implicit sv_2mortal later */
+  if (b_inplace)
+    SvREFCNT_inc(newstr);
+
+  RETVAL = newstr;
+OUTPUT:
+  RETVAL
+
