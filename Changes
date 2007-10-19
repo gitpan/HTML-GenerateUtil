@@ -1,5 +1,9 @@
 Revision history for Perl extension HTML::GenerateUtil.
 
+1.08  Fri Oct 19 17:09:00 2007
+	- if you use s/(...)/escape_uri($1)/, then $1 might not be SvOK()
+    because it's magic. Need to call SvGETMAGIC first
+
 1.07  Fri Oct 28 15:34:00 2005
 	- add escape_uri function
   - fix random but very rare cluck bug due to uninitialised memory usage

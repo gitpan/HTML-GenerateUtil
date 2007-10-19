@@ -137,7 +137,7 @@ SV * GF_generate_attributes(HV * attrhv) {
   int i, j, estimatedlen = 1;
   I32 keylen;
   char * key, tmp[64];
-  SV * attrstr, * val, *rval;
+  SV * attrstr, * val;
 
   /* Iterate through keys to work out an estimated final length */
   while ((val = hv_iternextsv(attrhv, &key, &keylen))) {
@@ -389,7 +389,7 @@ int GF_estimate_attribute_value_len(SV * val) {
   if (valtype == SVt_PVHV) {
     int estimatedlen = 0;
     HV * hval = (HV *)val;
-    char * key; I32 keylen, first = 0;
+    char * key; I32 keylen;
     hv_iterinit(hval);
     while ((val = hv_iternextsv(hval, &key, &keylen))) {
       estimatedlen += keylen + 1;
@@ -441,7 +441,7 @@ void GF_generate_attribute_value(SV * attrstr, SV * val) {
     char * key; I32 keylen;
     I32 hlen = hv_iterinit(hval), i = 0;
     HE * hentry;
-    while (hentry = hv_iternext(hval)) {
+    while ((hentry = hv_iternext(hval))) {
       key = hv_iterkey(hentry, &keylen);
       sv_catpvn(attrstr, key, keylen);
       if (++i != hlen) sv_catpvn(attrstr, " ", 1);

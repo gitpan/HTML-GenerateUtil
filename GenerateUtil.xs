@@ -25,6 +25,7 @@ INIT:
   SV * newstr;
 
   /* Check it's a string */
+  SvGETMAGIC(str);
   if (!SvOK(str)) {
     XSRETURN_UNDEF;
   }
@@ -113,6 +114,7 @@ INIT:
   SV * newstr;
 
   /* Check it's a string */
+  SvGETMAGIC(str);
   if (!SvOK(str) || !SvOK(escstr)) {
     XSRETURN_UNDEF;
   }
