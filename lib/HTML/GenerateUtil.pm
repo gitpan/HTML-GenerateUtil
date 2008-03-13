@@ -15,7 +15,8 @@ our %EXPORT_TAGS = (
     escape_html generate_attributes generate_tag escape_uri
     EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
     GT_ESCAPEVAL GT_ADDNEWLINE GT_CLOSETAG
-    EU_INPLACE
+    EU_INPLACE 
+    $H a div span label ul li h2
   ) ],
   'consts' => [ qw(
     EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
@@ -30,7 +31,9 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.08';
+our $VERSION = '1.09';
+
+our $H = 'HTML::GenerateUtil';
 
 require XSLoader;
 XSLoader::load('HTML::GenerateUtil', $VERSION);
@@ -54,6 +57,36 @@ my $escape_lite = '"$+,/:;<=>@[]^`{}|\\' . "\x7f";
 sub escape_uri { return escape_uri_internal($_[0], $_[2] || $escape_all, $_[1] || 0) }
 sub escape_uri_lite { return escape_uri_internal($_[0], $_[2] || $escape_lite, $_[1] || 0) }
 
+# If an unknown function is called, fill in some parameters and
+# call generate_tag
+# e.g. 
+#                 font( $html )  
+#      maps to    generate_tag('font',undef,$html, 0 )
+#                 font( { size => 1 }, $html )  
+#      maps to    generate_tag('font',{ size => 1},$html, 0 )
+#                 font( $html, GT_ADDNEWLINE )  
+#      maps to    generate_tag('font',{ size => 1},$html, GT_ADDNEWLINE )
+sub AUTOLOAD {
+
+  # assume the function name is the tag name
+  my $Tag = our $AUTOLOAD;
+  $Tag =~ s{.*::}{};
+
+  # if the function was called on the class name, strip out the class name
+  shift if $_[0] eq $H;
+
+  # if the first parameter was not a ref, assume no attributes passed,
+  # so we use an empty attr list 
+  unshift @_, undef unless ($_[0] && ref($_[0]));
+
+  # Use the tag as the first parameter
+  unshift @_, lc $Tag;
+
+  # If no flags were specified, set to 0
+  $_[3] ||= 0;
+
+  goto &generate_tag;
+}
 1;
 __END__
 

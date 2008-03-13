@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::GenerateUtil.
 
+1.09  Thu Mar 13 16:00:00 2008
+  - Add an AUTOLOAD method which calls generate_tag
+
 1.08  Fri Oct 19 17:09:00 2007
 	- if you use s/(...)/escape_uri($1)/, then $1 might not be SvOK()
     because it's magic. Need to call SvGETMAGIC first
