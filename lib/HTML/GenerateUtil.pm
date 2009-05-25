@@ -16,7 +16,7 @@ our %EXPORT_TAGS = (
     EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
     GT_ESCAPEVAL GT_ADDNEWLINE GT_CLOSETAG
     EU_INPLACE 
-    $H a div span label ul li h2
+    $H a div span label ul ol li h1 h2 h3 h4
   ) ],
   'consts' => [ qw(
     EH_INPLACE EH_LFTOBR EH_SPTONBSP EH_LEAVEKNOWN
@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.09';
+our $VERSION = '1.10';
 
 our $H = 'HTML::GenerateUtil';
 
@@ -99,7 +99,7 @@ HTML::GenerateUtil - Routines useful when generating HTML output
   use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag escape_uri :consts);
 
   my $Html = "text < with > things & that need \x{1234} escaping";
-  $Html = escape_html($Html, 0);
+  $Html = escape_html($Html);
 
   ... or ...
 
@@ -189,12 +189,12 @@ be very fast. It's also fully UTF-8 aware.
 
 =over 4
 
-=item C<escape_html($Str, $Mode)>
+=item C<escape_html($Str [, $Mode ])>
 
 Escapes the contents of C<$Str> to change the chars
 [<>&"] to '&lt;', '&gt;', '&amp;' and '&quot;' repectively.
 
-C<$Mode> is a bit field with the additional options or'd together:
+C<$Mode> is an optional bit field with the additional options or'd together:
 
 =over 4
 
@@ -388,7 +388,7 @@ Rob Mueller E<lt>cpan@robm.fastmail.fmE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2004 by FastMail IP Partners
+Copyright (C) 2004-2009 by FastMail IP Partners
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

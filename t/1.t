@@ -1,7 +1,7 @@
 
 #########################
 
-use Test::More tests => 2060;
+use Test::More tests => 2063;
 BEGIN { use_ok('HTML::GenerateUtil') };
 use HTML::GenerateUtil qw(:consts escape_html generate_attributes generate_tag);
 use Encode;
@@ -12,6 +12,10 @@ my @border = 'x' x $border_size;
 
 ok (!defined escape_html(undef, 0));
 ok (!defined escape_html(undef, EH_INPLACE));
+
+is ('  ', escape_html('  '));
+is ('&lt;', escape_html('<'));
+is ('&amp;amp;', escape_html('&amp;'));
 
 push @border, 'x' x $border_size;
 
