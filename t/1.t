@@ -13,10 +13,6 @@ my @border = 'x' x $border_size;
 ok (!defined escape_html(undef, 0));
 ok (!defined escape_html(undef, EH_INPLACE));
 
-is ('  ', escape_html('  '));
-is ('&lt;', escape_html('<'));
-is ('&amp;amp;', escape_html('&amp;'));
-
 push @border, 'x' x $border_size;
 
 is ('1', escape_html(1, 0));
@@ -47,6 +43,10 @@ is (' &nbsp; ', escape_html('   ', EH_SPTONBSP));
 
 is (' ', escape_html(' ', 0));
 is ('&nbsp;', escape_html(' ', EH_SPTONBSP));
+
+is ('  ', escape_html('  '));
+is ('&lt;', escape_html('<'));
+is ('&amp;amp;', escape_html('&amp;'));
 
 push @border, 'x' x $border_size;
 

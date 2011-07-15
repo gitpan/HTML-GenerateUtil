@@ -31,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.10';
+our $VERSION = '1.11';
 
 our $H = 'HTML::GenerateUtil';
 
@@ -87,7 +87,9 @@ sub AUTOLOAD {
 
   goto &generate_tag;
 }
+
 1;
+
 __END__
 
 =head1 NAME
@@ -96,7 +98,7 @@ HTML::GenerateUtil - Routines useful when generating HTML output
 
 =head1 SYNOPSIS
 
-  use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag escape_uri :consts);
+  use HTML::GenerateUtil qw(escape_html generate_attributes generate_tag escape_uri :consts $H div);
 
   my $Html = "text < with > things & that need \x{1234} escaping";
   $Html = escape_html($Html);
@@ -118,6 +120,11 @@ HTML::GenerateUtil - Routines useful when generating HTML output
 
   my $URI = 'http://host/?' . join ";", map { $_ => escape_uri($Params{$_}) } keys %Params;
   $Html = generate_tag('a', { href => $URI }, $Html, 0);
+
+  ... you can shortcut that by importing a function, or using the autoloading $H object ...
+
+  div({ class => [ qw(a b) ] }, "div content");
+  $H->a({ href => $URI  }, "text", GT_ADDNEWLINE);
 
 =head1 DESCRIPTION
 
@@ -368,11 +375,15 @@ C<EU_INPLACE> - modify in-place, otherwise return new copy
 
 =back
 
+=cut
+
 =head1 BUGS AND LIMITATIONS
 
 The EH_LEAVEKNOWN option is just heuristic, and accepts anything
 that even looks like an entity reference, even if it isn't a
 correct one. I'm not sure if this is a securit issue or not.
+
+=cut
 
 =head1 SEE ALSO
 
@@ -382,13 +393,21 @@ Latest news/details can also be found at:
 
 L<http://cpan.robm.fastmail.fm/htmlgenerateutil/>
 
+Available on github at:
+
+L<https://github.com/robmueller/html-generateutil/>
+
+=cut
+
 =head1 AUTHOR
 
 Rob Mueller E<lt>cpan@robm.fastmail.fmE<gt>
 
+=cut
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2004-2009 by FastMail IP Partners
+Copyright (C) 2004-2011 by Opera Software Australia Pty Ltd
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
