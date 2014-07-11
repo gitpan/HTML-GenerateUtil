@@ -15,3 +15,4 @@ t/4.t
 t/5.t
 t/6.t
 MANIFEST.SKIP
+META.json                                Module JSON meta-data (added by MakeMaker)

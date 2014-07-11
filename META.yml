@@ -1,13 +1,21 @@
---- #YAML:1.0
-name:                HTML-GenerateUtil
-version:             1.11
-abstract:            Routines useful when generating HTML output
-license:             ~
-author:              
-    - root <root@hp>
-generated_by:        ExtUtils::MakeMaker version 6.42
-distribution_type:   module
-requires:     
+---
+abstract: 'Routines useful when generating HTML output'
+author:
+  - 'root <root@hp>'
+build_requires:
+  ExtUtils::MakeMaker: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.88, CPAN::Meta::Converter version 2.120351'
+license: unknown
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
-    version: 1.3
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: HTML-GenerateUtil
+no_index:
+  directory:
+    - t
+    - inc
+requires: {}
+version: 1.20
